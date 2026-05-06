@@ -160,4 +160,72 @@ class Database:
 
         table["records"] = new_records
         return deleted
+
+    def sort_records(self, table_name: str, field: str, reverse: bool = False) -> list:
+        """
+        Сортирует записи в таблице по указанному полю.
+        
+        Args:
+            table_name: Имя таблицы
+            field: Имя поля для сортировки
+            reverse: Если True - сортировка по убыванию, если False - по возрастанию
+            
+        Returns:
+            Отсортированный список записей
+            
+        Raises:
+            ValueError: Если таблица не существует или поле не найдено
+        """
+        if table_name not in self._tables:
+            raise ValueError(f"Таблица '{table_name}' не существует")
+        
+        table = self._tables[table_name]
+        columns = table["columns"]
+        
+        if field not in columns:
+            raise ValueError(f"Поле '{field}' не существует в таблице")
+        
+        records = table["records"]
+        
+        # Создаем копию для сортировки, чтобы не изменять оригинал
+        sorted_records = records.copy()
+        
+        # Сортируем с помощью лямбда-функции
+        sorted_records.sort(key=lambda x: x.get(field), reverse=reverse)
+        
+        return sorted_records
+
+
+def sort_records_ui(db: Database) -> None:
+    """Интерфейс для сортировки записей."""
+    from src.db.tui import select_table
     
+    table_name = select_table(db)
+    if not table_name:
+        return
+    
+    info = db.get_table_info(table_name)
+    print(f"\n--- СОРТИРОВКА В ТАБЛИЦЕ '{table_name}' ---")
+    print(f"Доступные поля: {info['columns']}")
+    
+    field = input("Введите поле для сортировки: ").strip()
+    if not field:
+        print("Ошибка: поле не может быть пустым")
+        return
+    
+    reverse_input = input("Сортировка по убыванию? (y/n): ").strip().lower()
+    reverse = reverse_input == 'y'
+    
+    try:
+        sorted_records = db.sort_records(table_name, field, reverse)
+        
+        if not sorted_records:
+            print("Записей нет")
+            return
+        
+        print(f"\n--- ОТСОРТИРОВАННЫЕ ЗАПИСИ (по полю '{field}') ---")
+        for i, rec in enumerate(sorted_records, 1):
+            print(f"{i}. {rec}")
+    except ValueError as e:
+        print(f"Ошибка: {e}")
+        

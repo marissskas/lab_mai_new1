@@ -31,7 +31,7 @@ def read_string(prompt: str) -> str:
         value = input(prompt).strip()
         if value:
             return value
-        print("❌ Ошибка. Поле не может быть пустым")
+        print(" Ошибка. Поле не может быть пустым")
 
 
 def read_optional(prompt: str) -> Optional[str]:
@@ -44,7 +44,7 @@ def select_table(db: Database) -> Optional[str]:
     """Выбирает таблицу из списка."""
     tables = db.get_table_names()
     if not tables:
-        print("\n❌ Ошибка. Нет созданных таблиц. Сначала создайте таблицу.")
+        print("\n Ошибка. Нет созданных таблиц. Сначала создайте таблицу.")
         return None
 
     print("\n📋 Доступные таблицы:")
@@ -60,9 +60,9 @@ def select_table(db: Database) -> Optional[str]:
             idx = int(choice) - 1
             if 0 <= idx < len(tables):
                 return tables[idx]
-            print("❌ Неверный номер")
+            print(" Неверный номер")
         except ValueError:
-            print("❌ Введите число")
+            print(" Введите число")
 
 
 def create_table_ui(db: Database) -> None:
@@ -72,7 +72,7 @@ def create_table_ui(db: Database) -> None:
     cols_input = input("Колонки (через пробел): ").strip()
 
     if not cols_input:
-        print("❌ Ошибка. Необходимо указать хотя бы одну колонку")
+        print(" Ошибка. Необходимо указать хотя бы одну колонку")
         return
 
     columns = tuple(cols_input.split())
@@ -81,7 +81,7 @@ def create_table_ui(db: Database) -> None:
         db.create_table(name, columns)
         print(f"✓ Таблица '{name}' создана. Колонки: {columns}")
     except ValueError as e:
-        print(f"❌ Ошибка: {e}")
+        print(f" Ошибка: {e}")
 
 
 def show_tables_ui(db: Database) -> None:
@@ -94,7 +94,7 @@ def show_tables_ui(db: Database) -> None:
 
     for name in tables:
         info = db.get_table_info(name)
-        print(f"\n📊 {name}")
+        print(f"\n {name}")
         print(f"   Колонки: {info['columns']}")
         print(f"   Записей: {info['records_count']}")
 
@@ -116,9 +116,9 @@ def insert_ui(db: Database) -> None:
 
     try:
         result = db.insert(table_name, record)
-        print(f"✓ Запись добавлена: {result}")
+        print(f" Запись добавлена: {result}")
     except ValueError as e:
-        print(f"❌ Ошибка: {e}")
+        print(f" Ошибка: {e}")
 
 
 def select_all_ui(db: Database) -> None:
@@ -138,7 +138,7 @@ def select_all_ui(db: Database) -> None:
         for i, rec in enumerate(records, 1):
             print(f"{i}. {rec}")
     except ValueError as e:
-        print(f"❌ Ошибка: {e}")
+        print(f" Ошибка: {e}")
 
 
 def search_ui(db: Database) -> None:
@@ -159,11 +159,11 @@ def search_ui(db: Database) -> None:
 
     try:
         records = db.select(table_name, **filters)
-        print(f"\n📊 Найдено: {len(records)} записей")
+        print(f"\n Найдено: {len(records)} записей")
         for i, rec in enumerate(records, 1):
             print(f"{i}. {rec}")
     except ValueError as e:
-        print(f"❌ Ошибка: {e}")
+        print(f" Ошибка: {e}")
 
 
 def update_ui(db: Database) -> None:
@@ -175,7 +175,7 @@ def update_ui(db: Database) -> None:
     info = db.get_table_info(table_name)
     print(f"\n--- ОБНОВЛЕНИЕ В ТАБЛИЦЕ '{table_name}' ---")
 
-    print("\n📌 Фильтры (Enter — пропустить):")
+    print("\n Фильтры (Enter — пропустить):")
     filters = {}
     for col in info['columns']:
         value = read_optional(f"   {col}: ")
@@ -184,9 +184,9 @@ def update_ui(db: Database) -> None:
 
     # Предупреждение, если фильтры не заданы
     if not filters:
-        print("\n⚠️ ВНИМАНИЕ: Будут обновлены ВСЕ записи в таблице!")
+        print("\n ВНИМАНИЕ: Будут обновлены ВСЕ записи в таблице!")
 
-    print("\n✏️ Новые значения (Enter — пропустить):")
+    print("\n Новые значения (Enter — пропустить):")
     updates = {}
     for col in info['columns']:
         value = read_optional(f"   {col}: ")
@@ -194,21 +194,21 @@ def update_ui(db: Database) -> None:
             updates[col] = value
 
     if not updates:
-        print("❌ Не указаны поля для обновления")
+        print(" Не указаны поля для обновления")
         return
 
     # Подтверждение, если обновляются все записи
     if not filters:
-        confirm = input("\n⚠️ Подтвердите обновление ВСЕХ записей (y/n): ").strip().lower()
+        confirm = input("\n Подтвердите обновление ВСЕХ записей (y/n): ").strip().lower()
         if confirm != 'y':
             print("Обновление отменено")
             return
 
     try:
         count = db.update(table_name, updates, **filters)
-        print(f"✓ Обновлено записей: {count}")
+        print(f" Обновлено записей: {count}")
     except ValueError as e:
-        print(f"❌ Ошибка: {e}")
+        print(f" Ошибка: {e}")
 
 
 def delete_ui(db: Database) -> None:
@@ -220,7 +220,7 @@ def delete_ui(db: Database) -> None:
     info = db.get_table_info(table_name)
     print(f"\n--- УДАЛЕНИЕ ИЗ ТАБЛИЦЫ '{table_name}' ---")
 
-    print("\n📌 Фильтры (Enter — удалить ВСЕ записи):")
+    print("\n Фильтры (Enter — удалить ВСЕ записи):")
     filters = {}
     for col in info['columns']:
         value = read_optional(f"   {col}: ")
@@ -229,7 +229,7 @@ def delete_ui(db: Database) -> None:
 
     # Подтверждение
     if not filters:
-        print("\n⚠️ ВНИМАНИЕ: будут удалены ВСЕ записи в таблице!")
+        print("\n ВНИМАНИЕ: будут удалены ВСЕ записи в таблице!")
 
     confirm = input("\nПодтвердите удаление (y/n): ").strip().lower()
     if confirm != 'y':
@@ -238,9 +238,9 @@ def delete_ui(db: Database) -> None:
 
     try:
         count = db.delete(table_name, **filters)
-        print(f"✓ Удалено записей: {count}")
+        print(f" Удалено записей: {count}")
     except ValueError as e:
-        print(f"❌ Ошибка: {e}")
+        print(f" Ошибка: {e}")
 
 
 def table_info_ui(db: Database) -> None:
@@ -294,7 +294,8 @@ def run() -> None:
         elif choice == "8":
             table_info_ui(db)
         elif choice == "0":
-            print("\n👋 До свидания!")
+            print("\n До свидания!")
             break
         else:
-            print("❌ Неизвестная команда")
+            print(" Неизвестная команда")
+            
