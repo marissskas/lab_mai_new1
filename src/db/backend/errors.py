@@ -1,17 +1,26 @@
-"""Пользовательские исключения для базы данных студентов."""
+"""Пользовательские исключения для базы данных."""
 
-class StudentTableError(Exception):
-    """Базовый класс для ошибок, связанных с таблицей Student."""
+
+class DatabaseError(Exception):
+    """Базовый класс для ошибок базы данных."""
     pass
 
-class InvalidAgeError(StudentTableError):
-    """Ошибка, возникающая при попытке создать запись с некорректным возрастом."""
+
+class TableAlreadyExistsError(DatabaseError):
+    """Ошибка при создании уже существующей таблицы."""
     pass
 
-class DuplicateIDError(StudentTableError):
-    """Ошибка, возникающая при попытке создать запись с уже существующим идентификатором."""
+
+class TableNotFoundError(DatabaseError):
+    """Ошибка при обращении к несуществующей таблице."""
     pass
 
-class RecordNotFoundError(StudentTableError):
-    """Ошибка, возникающая при попытке получить несуществующую запись."""
+
+class MissingColumnError(DatabaseError):
+    """Ошибка при вставке записи с отсутствующим полем."""
+    pass
+
+
+class UnknownColumnError(DatabaseError):
+    """Ошибка при использовании несуществующего поля."""
     pass
