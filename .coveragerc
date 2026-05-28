@@ -1,2 +1,0 @@
-[run] 
-omit = src/db/tui.py, src/db/__main__.py 
