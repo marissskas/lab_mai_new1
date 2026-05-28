@@ -1,0 +1,17 @@
+[run]
+source = src/db/backend
+omit =
+    */tests/*
+    */__pycache__/*
+    */tui.py
+
+[report]
+fail_under = 80
+show_missing = True
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if self.debug:
+    if __name__ == .__main__.:
+    raise NotImplementedError
+    @abstractmethod
