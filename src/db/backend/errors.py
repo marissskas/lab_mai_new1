@@ -24,3 +24,23 @@ class MissingColumnError(DatabaseError):
 class UnknownColumnError(DatabaseError):
     """Ошибка при использовании несуществующего поля."""
     pass
+
+
+class InvalidStorageDataError(DatabaseError):
+    """Ошибка при чтении повреждённых данных из файла."""
+    pass
+
+
+class StudentTableError(DatabaseError):
+    """Базовый класс для ошибок таблицы Студенты."""
+    pass
+
+
+class InvalidAgeError(StudentTableError):
+    """Ошибка при попытке создать запись с отрицательным возрастом."""
+    pass
+
+
+class DuplicateIDError(StudentTableError):
+    """Ошибка при попытке создать запись с дублирующим ID."""
+    pass

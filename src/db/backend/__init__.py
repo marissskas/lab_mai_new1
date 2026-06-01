@@ -1,21 +1,29 @@
 """Пакет бэкенда базы данных."""
 
-from .database import Database
-from .memory_db import MemoryDatabase
+from .memory import MemoryDatabase, Student, create_record, select_record, init_student_table
 from .errors import (
     DatabaseError,
     TableAlreadyExistsError,
     TableNotFoundError,
     MissingColumnError,
     UnknownColumnError,
+    InvalidStorageDataError,
+    InvalidAgeError,
+    DuplicateIDError,
 )
 
 __all__ = [
-    "Database",
     "MemoryDatabase",
+    "Student",
+    "create_record",
+    "select_record",
+    "init_student_table",
     "DatabaseError",
     "TableAlreadyExistsError",
     "TableNotFoundError",
     "MissingColumnError",
     "UnknownColumnError",
+    "InvalidStorageDataError",
+    "InvalidAgeError",
+    "DuplicateIDError",
 ]
