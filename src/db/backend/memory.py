@@ -19,8 +19,8 @@ class Table:
         self.columns = columns
         self._records: list[dict] = []
     
-    def _validate_record(self, record: dict) -> None:
-        """Проверяет корректность записи."""
+    def _validate_record_structure(self, record: dict) -> None:
+        """Проверяет корректность структуры записи."""
         for col in self.columns:
             if col not in record:
                 raise MissingColumnError(f"Отсутствует поле: {col}")
@@ -28,16 +28,37 @@ class Table:
             if key not in self.columns:
                 raise UnknownColumnError(f"Неизвестное поле: {key}")
     
+    def _convert_types(self, record: dict) -> dict:
+        """Преобразует значения в соответствующие типы."""
+        converted = record.copy()
+        for key, value in converted.items():
+            if isinstance(value, str):
+                # Пробуем преобразовать в int
+                try:
+                    converted[key] = int(value)
+                    continue
+                except ValueError:
+                    pass
+                # Пробуем преобразовать в float
+                try:
+                    converted[key] = float(value)
+                    continue
+                except ValueError:
+                    pass
+            # Если не число или уже другой тип, оставляем как есть
+        return converted
+    
     def insert(self, record: dict) -> dict:
-        """Добавляет запись."""
-        self._validate_record(record)
-        self._records.append(record.copy())
-        return record
+        """Добавляет запись с сохранением типов данных."""
+        self._validate_record_structure(record)
+        typed_record = self._convert_types(record)
+        self._records.append(typed_record)
+        return typed_record
     
     def select(self, **filters) -> list[dict]:
         """Выбирает записи по фильтрам."""
         if not filters:
-            return self._records.copy()
+            return [r.copy() for r in self._records]
         
         result = []
         for record in self._records:
@@ -45,6 +66,7 @@ class Table:
             for key, value in filters.items():
                 if key not in self.columns:
                     raise UnknownColumnError(f"Неизвестное поле фильтра: {key}")
+                # Сравниваем строковое представление для фильтрации
                 if str(record.get(key)) != str(value):
                     match = False
                     break
@@ -54,12 +76,13 @@ class Table:
     
     def update(self, updates: dict, **filters) -> int:
         """Обновляет записи."""
-        # Проверяем, что все поля для обновления существуют
         for key in updates.keys():
             if key not in self.columns:
                 raise UnknownColumnError(f"Неизвестное поле: {key}")
         
-        # Находим индексы записей для обновления
+        # Преобразуем типы в обновлениях
+        typed_updates = self._convert_types(updates)
+        
         indices_to_update = []
         for idx, record in enumerate(self._records):
             match = True
@@ -72,9 +95,8 @@ class Table:
             if match:
                 indices_to_update.append(idx)
         
-        # Обновляем записи по индексам
         for idx in indices_to_update:
-            for key, value in updates.items():
+            for key, value in typed_updates.items():
                 self._records[idx][key] = value
         
         return len(indices_to_update)
@@ -103,10 +125,32 @@ class Table:
         return count
     
     def sort_records(self, field: str, reverse: bool = False) -> list[dict]:
-        """Сортирует записи."""
+        """Сортирует записи с учётом типа данных (числа сортируются как числа)."""
         if field not in self.columns:
             raise UnknownColumnError(f"Поле '{field}' не найдено в таблице")
-        return sorted(self._records, key=lambda x: str(x.get(field, "")), reverse=reverse)
+        
+        def get_key(record: dict):
+            """Возвращает ключ для сортировки с учётом типа данных."""
+            value = record.get(field, "")
+            
+            # Если значение уже число, возвращаем как есть
+            if isinstance(value, (int, float)):
+                return value
+            
+            # Если строка, пробуем преобразовать в число
+            if isinstance(value, str):
+                try:
+                    return int(value)
+                except ValueError:
+                    try:
+                        return float(value)
+                    except ValueError:
+                        return value
+            
+            # Для остальных типов возвращаем как есть
+            return value
+        
+        return sorted(self._records, key=get_key, reverse=reverse)
     
     def get_info(self) -> dict:
         """Возвращает информацию о таблице."""
@@ -115,7 +159,8 @@ class Table:
             "columns": self.columns,
             "records_count": len(self._records),
         }
-
+    
+    
 class MemoryDatabase:
     """База данных в оперативной памяти."""
     
@@ -141,23 +186,59 @@ class MemoryDatabase:
         return self._tables[table_name].get_info()
     
     def insert(self, table_name: str, record: dict) -> dict:
-        return self._get_table(table_name).insert(record)
+        """Вставляет запись в таблицу с проверками для таблицы студентов."""
+        table = self._get_table(table_name)
+        
+        # Бизнес-проверки для таблицы студентов
+        if table_name == "студенты":
+            # Проверка на отрицательный возраст
+            if "возраст" in record:
+                try:
+                    age = int(record["возраст"])
+                    if age < 0:
+                        raise InvalidAgeError("Поле 'возраст' не может быть отрицательным.")
+                except ValueError:
+                    pass  # Если не число, ошибка будет в структуре
+            
+            # Проверка на дублирование ID
+            if "id" in record:
+                existing = self.select(table_name, id=record["id"])
+                if existing:
+                    raise DuplicateIDError(f"Запись с id={record['id']} уже существует.")
+        
+        return table.insert(record)
     
     def select(self, table_name: str, **filters) -> list[dict]:
-        return self._get_table(table_name).select(**filters)
+        table = self._get_table(table_name)
+        return table.select(**filters)
     
     def update(self, table_name: str, updates: dict, **filters) -> int:
-        return self._get_table(table_name).update(updates, **filters)
+        table = self._get_table(table_name)
+        
+        # Бизнес-проверки для таблицы студентов при обновлении
+        if table_name == "студенты":
+            # Проверка на отрицательный возраст при обновлении
+            if "возраст" in updates:
+                try:
+                    age = int(updates["возраст"])
+                    if age < 0:
+                        raise InvalidAgeError("Поле 'возраст' не может быть отрицательным.")
+                except ValueError:
+                    pass
+        
+        return table.update(updates, **filters)
     
     def delete(self, table_name: str, **filters) -> int:
-        return self._get_table(table_name).delete(**filters)
+        table = self._get_table(table_name)
+        return table.delete(**filters)
     
     def sort_records(self, table_name: str, field: str, reverse: bool = False) -> list[dict]:
-        return self._get_table(table_name).sort_records(field, reverse)
+        table = self._get_table(table_name)
+        return table.sort_records(field, reverse)
 
 
 # ============================================================
-# Интерфейс для работы со студентами (русские названия полей)
+# Интерфейс для работы со студентами (обратная совместимость)
 # ============================================================
 
 _db = MemoryDatabase()
