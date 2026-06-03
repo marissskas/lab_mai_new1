@@ -2,15 +2,38 @@
 
 from typing import Optional
 from .backend.memory import MemoryDatabase
-from .backend.errors import DatabaseError
-
+from .backend.errors import (
+    TableNotFoundError,
+    MissingColumnError,
+    UnknownColumnError,
+    TableAlreadyExistsError,
+    InvalidAgeError,
+    DuplicateIDError,
+)
 
 class DatabaseApp:
     """Главное приложение."""
     
     def __init__(self):
-        self.db = MemoryDatabase()
+        self.db = self._select_database()
         self.running = True
+    
+    def _select_database(self):
+        """Выбор типа базы данных."""
+        print("\n" + "=" * 50)
+        print("ВЫБОР ТИПА БАЗЫ ДАННЫХ")
+        print("=" * 50)
+        print("1. In-memory (данные в оперативной памяти)")
+        print("2. File JSON (сохранение в JSON-файлы)")
+        
+        choice = input("\nВведите номер (1-2): ").strip()
+        
+        if choice == "2":
+            print("\nИспользуется файловая база данных (данные сохраняются в папке data/)")
+            return FileDatabase()
+        else:
+            print("\nИспользуется in-memory база данных (данные не сохраняются)")
+            return MemoryDatabase()
     
     def print_menu(self):
         print("\n" + "=" * 50)
@@ -36,7 +59,6 @@ class DatabaseApp:
             print("Поле не может быть пустым")
     
     def read_int(self, prompt: str) -> int:
-        """Читает целое число."""
         while True:
             try:
                 return int(input(prompt).strip())
@@ -110,20 +132,24 @@ class DatabaseApp:
         table_name = self.select_table()
         if not table_name:
             return
-        
+    
         info = self.db.get_table_info(table_name)
         if not info:
             print("Ошибка: таблица не найдена")
             return
-        
+    
         print(f"\n--- ДОБАВЛЕНИЕ ЗАПИСИ В ТАБЛИЦУ '{table_name}' ---")
         record = {}
-        
+    
         for col in info['columns']:
             if col == "id":
                 value = self.read_string(f"{col}: ")
             elif col == "возраст":
-                value = str(self.read_int(f"{col}: "))
+                age = self.read_int(f"{col}: ")
+                if age < 0:  # <-- ДОБАВЛЕНА ПРОВЕРКА
+                    print("Ошибка: возраст не может быть отрицательным!")
+                    return
+                value = str(age)
             elif col == "пол":
                 value = self.read_string(f"{col} (М/Ж): ")
                 value = value.upper()
@@ -133,7 +159,7 @@ class DatabaseApp:
             else:
                 value = self.read_string(f"{col}: ")
             record[col] = value
-        
+    
         try:
             self.db.insert(table_name, record)
             print("Запись добавлена")
@@ -151,7 +177,6 @@ class DatabaseApp:
                 print("Нет записей")
                 return
             
-            # Определяем заголовки в зависимости от колонок
             if "id" in records[0] and "имя" in records[0] and "фамилия" in records[0]:
                 print("\n{:<5} {:<15} {:<15} {:<6} {:<3}".format("ID", "Имя", "Фамилия", "Возраст", "Пол"))
                 print("-" * 50)
@@ -296,19 +321,22 @@ class DatabaseApp:
             print(f"Ошибка: {e}")
     
     def run(self):
-        # Автоматически создаём таблицу студентов при запуске
+        """Главный цикл приложения."""
+    # Создаём таблицу студентов в том же экземпляре базы данных
         try:
-            from .backend.memory import init_student_table
-            init_student_table()
-            print("Таблица 'студенты' создана (поля: id, имя, фамилия, возраст, пол)")
+            if 'студенты' not in self.db.get_table_names():
+                self.db.create_table('студенты', ('id', 'имя', 'фамилия', 'возраст', 'пол'))
+                print("Таблица 'студенты' создана (поля: id, имя, фамилия, возраст, пол)")
+            else:
+                print("Таблица 'студенты' уже существует")
         except Exception as e:
             print(f"При создании таблицы студентов: {e}")
-        
+    
         while self.running:
             try:
                 self.print_menu()
                 choice = input("Выберите действие: ").strip()
-                
+            
                 if choice == "1":
                     self.create_table()
                 elif choice == "2":
@@ -333,10 +361,26 @@ class DatabaseApp:
                 elif choice:
                     print("Неизвестная команда. Введите номер от 0 до 9.")
             except KeyboardInterrupt:
+            # Ctrl+C - выход из программы
                 print("\n\nДо свидания!")
                 break
+            except EOFError:
+            # Конец файла ввода (например, перенаправленный ввод)
+                print("\n\nОшибка ввода. Завершение работы.")
+                break
+            except ValueError as e:
+                # Ошибки преобразования типов
+                print(f"Ошибка ввода данных: {e}")
+            except (TableNotFoundError, MissingColumnError, UnknownColumnError) as e:
+            # Ошибки базы данных, которые можно продолжить
+                print(f"Ошибка: {e}")
             except Exception as e:
+            # Неожиданные ошибки - логируем и выходим
                 print(f"Непредвиденная ошибка: {e}")
+                import traceback
+                traceback.print_exc()
+                print("Программа завершена из-за критической ошибки.")
+                break
 
 
 def run():
